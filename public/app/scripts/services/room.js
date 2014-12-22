@@ -9,7 +9,7 @@
  * Factory in the publicApp.
  */
 angular.module('publicApp')
-  .factory('Room', function ($q, Io, config) {
+  .factory('Room', function ($rootScope, $q, Io, config) {
 
     var iceConfig = { 'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]},
         peerConnections = {},
@@ -21,27 +21,34 @@ angular.module('publicApp')
         return peerConnections[id];
       }
       var pc = new RTCPeerConnection(iceConfig);
-      pc.addStream(stream);
       peerConnections[id] = pc;
+      pc.addStream(stream);
       pc.onicecandidate = function (evnt) {
-        socket.emit('msg', { by: currentId, peerid: id, room: roomId, ice: evnt.candidate, type: 'ice' });
+        socket.emit('msg', { by: currentId, to: id, ice: evnt.candidate, type: 'ice' });
       };
       pc.onaddstream = function (evnt) {
+        console.log('Received new stream');
         api.trigger('peer.stream', [{
           id: id,
           stream: evnt.stream
         }]);
+        if (!$rootScope.$$digest) {
+          $rootScope.$apply();
+        }
       };
       return pc;
     }
 
     function makeOffer(id) {
-      var pc = getPeerConnection();
+      var pc = getPeerConnection(id);
       pc.createOffer(function (sdp) {
         pc.setLocalDescription(sdp);
-        socket.emit('msg', { by: currentId, peerid: id, sdp: sdp, type: 'sdp-offer' });
-      }, null,
-      {'mandatory': { 'OfferToReceiveVideo': true, 'OfferToReceiveAudio': true }});
+        console.log('Creating an offer for', id);
+        socket.emit('msg', { by: currentId, to: id, sdp: sdp, type: 'sdp-offer' });
+      }, function (e) {
+        console.log(e);
+      },
+      { mandatory: { OfferToReceiveVideo: true, OfferToReceiveAudio: true }});
     }
 
     function handleMessage(data) {
@@ -49,18 +56,23 @@ angular.module('publicApp')
       switch (data.type) {
         case 'sdp-offer':
           pc.setRemoteDescription(new RTCSessionDescription(data.sdp), function () {
+            console.log('Setting remote description by offer');
             pc.createAnswer(function (sdp) {
-              pc.setLocalDescription(sdp, function () {
-                socket.emit('msg', { by: currentId, peerid: data.by, room: roomId, sdp: sdp, type: 'sdp-answer' });
-              });
+              pc.setLocalDescription(sdp);
+              socket.emit('msg', { by: currentId, to: data.by, sdp: sdp, type: 'sdp-answer' });
             });
           });
           break;
         case 'sdp-answer':
-          pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          pc.setRemoteDescription(new RTCSessionDescription(data.sdp), function () {
+            console.log('Setting remote description by answer');
+          }, function (e) {
+            console.error(e);
+          });
           break;
         case 'ice':
           if (data.ice) {
+            console.log('Adding ice candidates');
             pc.addIceCandidate(new RTCIceCandidate(data.ice));
           }
           break;
@@ -75,7 +87,10 @@ angular.module('publicApp')
         makeOffer(params.id);
       });
       socket.on('peer.disconnected', function (data) {
-        api.trigger.bind('peer.disconnected', [data]);
+        api.trigger('peer.disconnected', [data]);
+        if (!$rootScope.$$digest) {
+          $rootScope.$apply();
+        }
       });
       socket.on('msg', function (data) {
         handleMessage(data);

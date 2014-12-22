@@ -21,15 +21,17 @@ angular.module('publicApp')
         Room.joinRoom(parseInt($routeParams.roomId, 10));
       }
     });
-    $scope.streams = [];
+    $scope.peers = [];
     Room.on('peer.stream', function (peer) {
-      $scope.streams.push({
+      console.log('Client connected, adding new stream');
+      $scope.peers.push({
         id: peer.id,
         stream: URL.createObjectURL(peer.stream)
       });
     });
     Room.on('peer.disconnected', function (peer) {
-      $scope.streams = $scope.streams.filter(function (p) {
+      console.log('Client disconnected, removing stream');
+      $scope.peers = $scope.peers.filter(function (p) {
         return p.id !== peer.id;
       });
     });
