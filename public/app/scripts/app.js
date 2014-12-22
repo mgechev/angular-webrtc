@@ -27,3 +27,10 @@ angular
         redirectTo: '/room'
       });
   });
+
+angular.module('publicApp')
+  .constant('config', function () {
+    return {
+      SIGNALIG_SERVER_URL: location.host
+    };
+  });
