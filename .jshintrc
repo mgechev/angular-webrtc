@@ -1,0 +1,6 @@
+{
+  "browser": true,
+  "globals": {
+    "io": false
+  }
+}
