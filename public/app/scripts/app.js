@@ -8,6 +8,7 @@
  *
  * Main module of the application.
  */
+
 angular
   .module('publicApp', [
     'ngRoute'

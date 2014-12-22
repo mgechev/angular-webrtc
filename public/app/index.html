@@ -48,19 +48,23 @@
     <!-- build:js(.) scripts/vendor.js -->
     <!-- bower:js -->
     <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
     <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/json3/lib/json3.js"></script>
     <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
-    <script src="http://localhost:5555/socket.io/socket.io.js"></script>
+    <script src="bower_components/eventEmitter/EventEmitter.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
+        <script src="scripts/adapter.js"></script>
         <script src="scripts/app.js"></script>
         <script src="scripts/controllers/room.js"></script>
         <script src="scripts/services/room.js"></script>
         <script src="scripts/services/io.js"></script>
         <script src="scripts/services/config.js"></script>
+        <script src="scripts/services/videostream.js"></script>
         <!-- endbuild -->
 </body>
 </html>
