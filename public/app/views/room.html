@@ -1,4 +1,3 @@
-<video-player ng-repeat="peer in peers" vid-src="{{peer.stream}}"></video-player>
-<ul>
-  <li ng-repeat="peer in peers">{{peer.id}}</li>
-</ul>
+<video-player ng-repeat="peer in peers" vid-src="{{peer.stream}}"  ng-animate="{enter: 'video-enter', leave: 'video-leave'}"></video-player>
+
+<video ng-src="{{getLocalVideo()}}" autoplay muted></video>

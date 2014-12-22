@@ -8,10 +8,15 @@
  * Controller of the publicApp
  */
 angular.module('publicApp')
-  .controller('RoomCtrl', function (VideoStream, $location, $routeParams, $scope, Room) {
+  .controller('RoomCtrl', function ($sce, VideoStream, $location, $routeParams, $scope, Room) {
+
+    var stream;
+
     VideoStream.get()
-    .then(function (stream) {
+    .then(function (s) {
+      stream = s;
       Room.init(stream);
+      stream = URL.createObjectURL(stream);
       if (!$routeParams.roomId) {
         Room.createRoom()
         .then(function (roomId) {
@@ -35,4 +40,8 @@ angular.module('publicApp')
         return p.id !== peer.id;
       });
     });
+
+    $scope.getLocalVideo = function () {
+      return $sce.trustAsResourceUrl(stream);
+    };
   });
