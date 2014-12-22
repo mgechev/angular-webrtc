@@ -23,18 +23,6 @@ angular.module('publicApp')
       remoteVideo.src = URL.createObjectURL(evnt.stream);
     };
 
-    socket.on('peer.connected', function () {
-      clientConnected = true;
-      if (!offered && cameraEnabled)
-        makeOffer();
-    });
-
-    socket.on('peer.disconnected', api.trigger.bind('peer.disconnected'));
-
-    socket.on('msg', function (data) {
-      handleMessage(data);
-    });
-
     function makeOffer() {
       offered = true;
       peerConnection.createOffer(function (sdp) {
@@ -63,10 +51,17 @@ angular.module('publicApp')
       }
     }
 
-    socket.emit('init', { room: roomId });
-
     var socket = Io.connect(config.SIGNALIG_SERVER_URL),
         connected = false;
+
+    function addHandlers(socket) {
+      socket.on('peer.connected', function () {
+      });
+      socket.on('peer.disconnected', api.trigger.bind('peer.disconnected'));
+      socket.on('msg', function (data) {
+        handleMessage(data);
+      });
+    }
 
     var api = {
       joinRoom: function (roomId) {
@@ -89,5 +84,7 @@ angular.module('publicApp')
     };
     EventEmitter.call(api);
     Object.setPrototypeOf(api, EventEmitter.prototype);
+
+    addHandlers(socket);
     return api;
   });
