@@ -1,3 +1,4 @@
+/* global RTCIceCandidate, RTCSessionDescription, RTCPeerConnection, EventEmitter */
 'use strict';
 
 /**
@@ -12,43 +13,51 @@ angular.module('publicApp')
 
     var iceConfig = { 'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]},
         peerConnections = {},
+        currentId, roomId,
         stream;
 
-    peerConnection.onicecandidate = function (evnt) {
-      socket.emit('msg', { room: roomId, ice: evnt.candidate, type: 'ice' });
-    };
-
-    peerConnection.onaddstream = function (evnt) {
-      localVideo.classList.remove('active');
-      remoteVideo.src = URL.createObjectURL(evnt.stream);
-    };
+    function createPeerConnection(id) {
+      var pc = peerConnections[id] || new RTCPeerConnection(iceConfig);
+      peerConnections[id] = pc;
+      pc.onicecandidate = function (evnt) {
+        socket.emit('msg', { by: currentId, peerid: id, room: roomId, ice: evnt.candidate, type: 'ice' });
+      };
+      pc.onaddstream = function (evnt) {
+        api.trigger('peer.stream', {
+          id: id,
+          stream: evnt.stream
+        });
+      };
+      return pc;
+    }
 
     function makeOffer(id) {
-      var pc = new RTCPeerConnection(iceConfig);
-      peerConnections[id] = pc;
+      var pc = createPeerConnection();
       pc.createOffer(function (sdp) {
         pc.setLocalDescription(sdp);
-        socket.emit('msg', { peerid: id, sdp: sdp, type: 'sdp-offer' });
+        socket.emit('msg', { by: currentId, peerid: id, sdp: sdp, type: 'sdp-offer' });
       }, null,
       {'mandatory': { 'OfferToReceiveVideo': true, 'OfferToReceiveAudio': true }});
     }
 
     function handleMessage(data) {
+      var pc = createPeerConnection(data.by);
       switch (data.type) {
         case 'sdp-offer':
-        peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        peerConnection.createAnswer(function (sdp) {
-          peerConnection.setLocalDescription(sdp);
-          socket.emit('msg', { room: roomId, sdp: sdp, type: 'sdp-answer' });
-        });
-        break;
+          pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          pc.createAnswer(function (sdp) {
+            pc.setLocalDescription(sdp);
+            socket.emit('msg', { by: currentId, peerid: data.by, room: roomId, sdp: sdp, type: 'sdp-answer' });
+          });
+          break;
         case 'sdp-answer':
-        peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        break;
+          pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          break;
         case 'ice':
-        if (data.ice)
-          peerConnection.addIceCandidate(new RTCIceCandidate(data.ice));
-        break;
+          if (data.ice) {
+            pc.addIceCandidate(new RTCIceCandidate(data.ice));
+          }
+          break;
       }
     }
 
@@ -68,14 +77,19 @@ angular.module('publicApp')
     var api = {
       joinRoom: function (roomId) {
         if (!connected) {
-          socket.emit('init', { room: roomId });
+          socket.emit('init', { room: roomId }, function (roomid, id) {
+            currentId = id;
+            roomId = roomId;
+          });
           connected = true;
         }
       },
       createRoom: function () {
         var d = $q.defer();
-        socket.emit('init', null, function (roomId) {
-          d.resolve(roomId);
+        socket.emit('init', null, function (roomid, id) {
+          d.resolve(roomid);
+          roomId = roomid;
+          currentId = id;
           connected = true;
         });
         return d.promise;
