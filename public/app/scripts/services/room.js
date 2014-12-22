@@ -11,7 +11,7 @@ angular.module('publicApp')
   .factory('Room', function ($q, Io, config) {
 
     var iceConfig = { 'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]},
-        peerConnection = new RTCPeerConnection(iceConfig),
+        peerConnections = {},
         stream;
 
     peerConnection.onicecandidate = function (evnt) {
@@ -23,11 +23,12 @@ angular.module('publicApp')
       remoteVideo.src = URL.createObjectURL(evnt.stream);
     };
 
-    function makeOffer() {
-      offered = true;
-      peerConnection.createOffer(function (sdp) {
-        peerConnection.setLocalDescription(sdp);
-        socket.emit('msg', { room: roomId, sdp: sdp, type: 'sdp-offer' });
+    function makeOffer(id) {
+      var pc = new RTCPeerConnection(iceConfig);
+      peerConnections[id] = pc;
+      pc.createOffer(function (sdp) {
+        pc.setLocalDescription(sdp);
+        socket.emit('msg', { peerid: id, sdp: sdp, type: 'sdp-offer' });
       }, null,
       {'mandatory': { 'OfferToReceiveVideo': true, 'OfferToReceiveAudio': true }});
     }
@@ -55,7 +56,8 @@ angular.module('publicApp')
         connected = false;
 
     function addHandlers(socket) {
-      socket.on('peer.connected', function () {
+      socket.on('peer.connected', function (params) {
+        makeOffer(params.id);
       });
       socket.on('peer.disconnected', api.trigger.bind('peer.disconnected'));
       socket.on('msg', function (data) {
