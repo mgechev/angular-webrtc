@@ -19,9 +19,9 @@ angular.module('publicApp')
           navigator.getUserMedia({
             video: true,
             audio: true
-          }, function (e) {
-            stream = e.stream;
-            d.resolve(e.stream);
+          }, function (s) {
+            stream = s;
+            d.resolve(stream);
           }, function (e) {
             d.reject(e);
           });

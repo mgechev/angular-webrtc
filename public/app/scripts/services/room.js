@@ -16,23 +16,27 @@ angular.module('publicApp')
         currentId, roomId,
         stream;
 
-    function createPeerConnection(id) {
-      var pc = peerConnections[id] || new RTCPeerConnection(iceConfig);
+    function getPeerConnection(id) {
+      if (peerConnections[id]) {
+        return peerConnections[id];
+      }
+      var pc = new RTCPeerConnection(iceConfig);
+      pc.addStream(stream);
       peerConnections[id] = pc;
       pc.onicecandidate = function (evnt) {
         socket.emit('msg', { by: currentId, peerid: id, room: roomId, ice: evnt.candidate, type: 'ice' });
       };
       pc.onaddstream = function (evnt) {
-        api.trigger('peer.stream', {
+        api.trigger('peer.stream', [{
           id: id,
           stream: evnt.stream
-        });
+        }]);
       };
       return pc;
     }
 
     function makeOffer(id) {
-      var pc = createPeerConnection();
+      var pc = getPeerConnection();
       pc.createOffer(function (sdp) {
         pc.setLocalDescription(sdp);
         socket.emit('msg', { by: currentId, peerid: id, sdp: sdp, type: 'sdp-offer' });
@@ -41,13 +45,15 @@ angular.module('publicApp')
     }
 
     function handleMessage(data) {
-      var pc = createPeerConnection(data.by);
+      var pc = getPeerConnection(data.by);
       switch (data.type) {
         case 'sdp-offer':
-          pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-          pc.createAnswer(function (sdp) {
-            pc.setLocalDescription(sdp);
-            socket.emit('msg', { by: currentId, peerid: data.by, room: roomId, sdp: sdp, type: 'sdp-answer' });
+          pc.setRemoteDescription(new RTCSessionDescription(data.sdp), function () {
+            pc.createAnswer(function (sdp) {
+              pc.setLocalDescription(sdp, function () {
+                socket.emit('msg', { by: currentId, peerid: data.by, room: roomId, sdp: sdp, type: 'sdp-answer' });
+              });
+            });
           });
           break;
         case 'sdp-answer':
@@ -68,18 +74,20 @@ angular.module('publicApp')
       socket.on('peer.connected', function (params) {
         makeOffer(params.id);
       });
-      socket.on('peer.disconnected', api.trigger.bind('peer.disconnected'));
+      socket.on('peer.disconnected', function (data) {
+        api.trigger.bind('peer.disconnected', [data]);
+      });
       socket.on('msg', function (data) {
         handleMessage(data);
       });
     }
 
     var api = {
-      joinRoom: function (roomId) {
+      joinRoom: function (r) {
         if (!connected) {
-          socket.emit('init', { room: roomId }, function (roomid, id) {
+          socket.emit('init', { room: r }, function (roomid, id) {
             currentId = id;
-            roomId = roomId;
+            roomId = roomid;
           });
           connected = true;
         }

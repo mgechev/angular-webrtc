@@ -17,6 +17,8 @@ angular.module('publicApp')
         .then(function (roomId) {
           $location.path('/room/' + roomId);
         });
+      } else {
+        Room.joinRoom(parseInt($routeParams.roomId, 10));
       }
     });
     $scope.streams = [];
