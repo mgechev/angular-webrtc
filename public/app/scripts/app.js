@@ -32,3 +32,8 @@ angular.module('publicApp')
   .constant('config', {
       SIGNALIG_SERVER_URL: undefined
   });
+
+Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+  obj.__proto__ = proto;
+  return obj; 
+};
