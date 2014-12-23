@@ -30,5 +30,5 @@ angular
 
 angular.module('publicApp')
   .constant('config', {
-      SIGNALIG_SERVER_URL: location.host
+      SIGNALIG_SERVER_URL: undefined
   });
