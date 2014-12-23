@@ -29,8 +29,6 @@ angular
   });
 
 angular.module('publicApp')
-  .constant('config', function () {
-    return {
-      SIGNALIG_SERVER_URL: location.host
-    };
+  .constant('config', {
+      SIGNALIG_SERVER_URL: 'http://localhost:5555'
   });
