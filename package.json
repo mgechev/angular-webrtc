@@ -13,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.10.6",
+    "node-uuid": "^1.4.2",
     "socket.io": "~0.9.16"
   }
 }

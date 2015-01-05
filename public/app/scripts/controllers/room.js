@@ -28,7 +28,7 @@ angular.module('publicApp')
           $location.path('/room/' + roomId);
         });
       } else {
-        Room.joinRoom(parseInt($routeParams.roomId, 10));
+        Room.joinRoom($routeParams.roomId);
       }
     }, function () {
       $scope.error = 'No audio/video permissions. Please refresh your browser and allow the audio/video capturing.';
